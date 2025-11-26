@@ -549,7 +549,7 @@
       statusEl.classList.remove("error");
     });
 
-    // 🎙️ Dictée vocale pour le champ "extra" (instructions)
+    // 🎙️ Dictée vocale pour le champ "extra" (instructions) – version simplifiée / plus robuste
     (function setupVoiceForExtra() {
       const micBtn = document.getElementById("micExtraBtn");
       const extraInput = document.getElementById("extra");
@@ -561,11 +561,13 @@
       let isListening = false;
 
       if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+
         recognition = new SpeechRecognition();
         recognition.lang = "fr-FR";
-        recognition.continuous = false;
-        recognition.interimResults = true;
+        recognition.continuous = true;      // tu peux parler plus longtemps
+        recognition.interimResults = false; // on ne gère que le texte final
 
         micBtn.addEventListener("click", () => {
           if (!isListening) {
@@ -580,10 +582,19 @@
         });
 
         recognition.onresult = (event) => {
-          const last = event.results[event.results.length - 1];
-          if (last.isFinal) {
-            const text = last[0].transcript.trim();
-            extraInput.value = (extraInput.value ? extraInput.value + " " : "") + text;
+          let text = "";
+
+          // On récupère tous les résultats finaux
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              text += event.results[i][0].transcript;
+            }
+          }
+
+          text = text.trim();
+          if (text) {
+            extraInput.value =
+              (extraInput.value ? extraInput.value + " " : "") + text;
           }
         };
 
@@ -602,7 +613,8 @@
           micStatus.textContent = "Erreur micro : " + event.error;
         };
       } else {
-        micStatus.textContent = "La dictée vocale n’est pas supportée sur ce navigateur (essaie Chrome ou Edge).";
+        micStatus.textContent =
+          "La dictée vocale n’est pas supportée sur ce navigateur (essaie Chrome ou Edge).";
       }
     })();
   </script>
