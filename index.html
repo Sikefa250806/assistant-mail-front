@@ -348,6 +348,40 @@
       background: rgba(15,23,42,0.98);
       border: 1px solid rgba(51,65,85,0.9);
     }
+
+    /* 🎙️ Mise en page pour les instructions + micro */
+    .instructions-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .instructions-row textarea {
+      flex: 1;
+      min-height: 70px;
+    }
+
+    .icon-btn {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.96);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-soft);
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .icon-btn.listening {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.6);
+    }
+
+    .mic-status {
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      min-height: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -402,8 +436,12 @@
                 </div>
               </div>
               <div>
-                <label for="extra">Consignes (optionnel)</label>
-                <input id="extra" type="text" placeholder="Ex : propose un créneau mardi, reste très bref, tutoie…">
+                <label for="extra">Tes instructions pour la réponse</label>
+                <div class="instructions-row">
+                  <textarea id="extra" rows="3" placeholder="Dicte ou écris ce que tu veux que l’IA fasse (ex : propose un créneau mardi, reste très bref, tutoie…)"></textarea>
+                  <button id="micExtraBtn" type="button" class="icon-btn" title="Dicter tes instructions">🎙️</button>
+                </div>
+                <p id="micStatus" class="mic-status"></p>
               </div>
             </div>
 
@@ -510,6 +548,63 @@
       statusEl.textContent = "Réponse copiée dans le presse-papiers ✅";
       statusEl.classList.remove("error");
     });
+
+    // 🎙️ Dictée vocale pour le champ "extra" (instructions)
+    (function setupVoiceForExtra() {
+      const micBtn = document.getElementById("micExtraBtn");
+      const extraInput = document.getElementById("extra");
+      const micStatus = document.getElementById("micStatus");
+
+      if (!micBtn || !extraInput || !micStatus) return;
+
+      let recognition;
+      let isListening = false;
+
+      if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = "fr-FR";
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        micBtn.addEventListener("click", () => {
+          if (!isListening) {
+            recognition.start();
+            isListening = true;
+            micBtn.classList.add("listening");
+            micBtn.textContent = "🛑";
+            micStatus.textContent = "Parle, j’écoute tes instructions…";
+          } else {
+            recognition.stop();
+          }
+        });
+
+        recognition.onresult = (event) => {
+          const last = event.results[event.results.length - 1];
+          if (last.isFinal) {
+            const text = last[0].transcript.trim();
+            extraInput.value = (extraInput.value ? extraInput.value + " " : "") + text;
+          }
+        };
+
+        recognition.onend = () => {
+          isListening = false;
+          micBtn.classList.remove("listening");
+          micBtn.textContent = "🎙️";
+          micStatus.textContent = "";
+        };
+
+        recognition.onerror = (event) => {
+          console.error(event);
+          isListening = false;
+          micBtn.classList.remove("listening");
+          micBtn.textContent = "🎙️";
+          micStatus.textContent = "Erreur micro : " + event.error;
+        };
+      } else {
+        micStatus.textContent = "La dictée vocale n’est pas supportée sur ce navigateur (essaie Chrome ou Edge).";
+      }
+    })();
   </script>
 </body>
 </html>
