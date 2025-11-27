@@ -479,6 +479,22 @@
   </div>
 
   <script>
+    // 🔹 Pré-remplissage automatique depuis l'URL : ?mail=...
+    (function preloadMailFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const mail = params.get("mail");
+        if (mail) {
+          const textarea = document.getElementById("mailInput");
+          if (textarea) {
+            textarea.value = mail;
+          }
+        }
+      } catch (e) {
+        console.error("Erreur lors du préchargement du mail depuis l'URL", e);
+      }
+    })();
+
     const toneButtons = document.getElementById("toneButtons");
     let selectedTone = "professionnel";
 
